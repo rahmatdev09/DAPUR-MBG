@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Dapur - Naila Jasmin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background: #064e3b;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
+      .loader-spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid transparent;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center min-h-screen p-6">
+    <div class="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl">
+      <div class="text-center mb-8">
+        <div
+          class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl"
+        >
+          <i class="fas fa-hat-chef"></i>
+        </div>
+        <h1
+          class="text-2xl font-black text-emerald-900 uppercase tracking-tighter"
+        >
+          Akses Dapur
+        </h1>
+        <p class="text-emerald-600/60 font-medium text-sm">
+          Masuk ke Sistem Pre-Order
+        </p>
+      </div>
+
+      <form id="formLogin" class="space-y-4">
+        <div>
+          <label
+            class="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest block mb-2 ml-2"
+            >Username / Email</label
+          >
+          <input
+            type="text"
+            id="userInput"
+            required
+            placeholder="Masukkan identitas"
+            class="w-full px-6 py-4 bg-emerald-50 border-none rounded-2xl font-bold text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label
+            class="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest block mb-2 ml-2"
+            >Password</label
+          >
+          <input
+            type="password"
+            id="passwordInput"
+            required
+            placeholder="••••••••"
+            class="w-full px-6 py-4 bg-emerald-50 border-none rounded-2xl font-bold text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div
+          id="errorMsg"
+          class="hidden text-rose-500 text-xs font-bold text-center bg-rose-50 py-3 rounded-xl"
+        >
+          Akun tidak ditemukan atau password salah!
+        </div>
+
+        <button
+          type="submit"
+          id="btnLogin"
+          class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 uppercase text-xs"
+        >
+          MASUK SEKARANG
+        </button>
+      </form>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        where,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBuIk0yhnqpcrkt4q_ed9ikJYuo6PJ78aQ",
+        authDomain: "koperasi-aguna-3a14a.firebaseapp.com",
+        projectId: "koperasi-aguna-3a14a",
+        storageBucket: "koperasi-aguna-3a14a.firebasestorage.app",
+        messagingSenderId: "668307732730",
+        appId: "1:668307732730:web:c2457d9a690eb303c3f143",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      const loginForm = document.getElementById("formLogin");
+      const btnLogin = document.getElementById("btnLogin");
+      const errorMsg = document.getElementById("errorMsg");
+
+      loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        errorMsg.classList.add("hidden");
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = `<span class="loader-spinner"></span>`;
+
+        const identifier = document.getElementById("userInput").value;
+        const password = document.getElementById("passwordInput").value;
+
+        try {
+          // 1. Cek berdasarkan Username TERLEBIH DAHULU
+          let q = query(
+            collection(db, "dapur"),
+            where("username", "==", identifier),
+            where("password", "==", password),
+          );
+          let querySnapshot = await getDocs(q);
+
+          // 2. Jika username tidak ketemu, baru cek berdasarkan Email
+          if (querySnapshot.empty) {
+            q = query(
+              collection(db, "dapur"),
+              where("email", "==", identifier),
+              where("password", "==", password),
+            );
+            querySnapshot = await getDocs(q);
+          }
+
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
+
+            // SIMPAN DATA KE LOCAL STORAGE
+            localStorage.setItem("dapurAuth", "true");
+            // Gunakan .id untuk mendapatkan Document ID dari Firestore
+            localStorage.setItem("dapurUID", userData.uid);
+            console.log(userData.uid);
+            localStorage.setItem(
+              "dapurUserName",
+              userData.nama || userData.username,
+            );
+            localStorage.setItem("dapurUserEmail", userData.email || "-");
+
+            window.location.href = "index.html";
+          } else {
+            throw new Error("Invalid Credentials");
+          }
+        } catch (error) {
+          console.error(error); // Untuk debug di console browser
+          errorMsg.classList.remove("hidden");
+          btnLogin.disabled = false;
+          btnLogin.innerText = "MASUK SEKARANG";
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="dynamicTitle">Kitchen Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #f0fdf4;
+      }
+      .card-dapur {
+        border-radius: 2rem;
+        background: white;
+        border: 1px solid #dcfce7;
+      }
+      .btn-emerald {
+        background: #059669;
+        color: white;
+        transition: all 0.3s;
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+      }
+      .btn-emerald:hover {
+        background: #065f46;
+        transform: translateY(-2px);
+      }
+      .loader-circle {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #059669;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+      }
+      .loader-big {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #10b981;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      /* Style untuk nomor halaman aktif */
+      .page-number.active {
+        background-color: #059669;
+        color: white;
+      }
+    </style>
+  </head>
+  <body class="pb-20">
+    <script>
+      if (localStorage.getItem("dapurAuth") !== "true") {
+        window.location.href = "dapur-login.html";
+      }
+    </script>
+
+    <nav
+      class="bg-white border-b border-emerald-100 px-6 py-4 sticky top-0 z-50 flex justify-between items-center shadow-sm"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          id="navInitials"
+          class="w-11 h-11 bg-emerald-600 rounded-xl text-white shadow-lg shadow-emerald-200 flex items-center justify-center font-black text-lg"
+        >
+          ??
+        </div>
+        <div class="flex flex-col">
+          <span
+            class="font-black text-emerald-900 tracking-tighter leading-none text-lg"
+            id="displayNama"
+            >Memuat...</span
+          >
+          <span
+            class="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1"
+          >
+            UID: <span id="displayUID" class="text-slate-400">-</span> | Email:
+            <span id="displayEmail" class="text-slate-400">-</span>
+          </span>
+        </div>
+      </div>
+      <button
+        onclick="logout()"
+        class="w-10 h-10 flex items-center justify-center rounded-full bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+      >
+        <i class="fas fa-power-off"></i>
+      </button>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="card-dapur p-6 flex items-center gap-5 shadow-sm">
+          <div
+            class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl"
+          >
+            <i class="fas fa-clock"></i>
+          </div>
+          <div>
+            <p
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+            >
+              Belum Datang
+            </p>
+            <h3 id="countPending" class="text-2xl font-black text-emerald-900">
+              0
+            </h3>
+          </div>
+        </div>
+        <div class="card-dapur p-6 flex items-center gap-5 shadow-sm">
+          <div
+            class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl"
+          >
+            <i class="fas fa-list-check"></i>
+          </div>
+          <div>
+            <p
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+            >
+              Total Pesanan
+            </p>
+            <h3 id="countTotal" class="text-2xl font-black text-emerald-900">
+              0
+            </h3>
+          </div>
+        </div>
+        <button
+          onclick="openModal()"
+          class="btn-emerald rounded-[2rem] p-6 flex items-center justify-center gap-4 group"
+        >
+          <i
+            class="fas fa-plus-circle text-2xl group-hover:rotate-90 transition-transform"
+          ></i>
+          <span class="font-black uppercase tracking-widest text-sm"
+            >Input Pre-Order</span
+          >
+        </button>
+      </div>
+
+      <div
+        id="mainTableCard"
+        class="card-dapur overflow-hidden shadow-xl border-none bg-white min-h-[400px] flex flex-col"
+      >
+        <div
+          class="p-8 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-sm"
+        >
+          <h2
+            class="font-black text-emerald-900 text-lg uppercase tracking-tight"
+          >
+            Monitoring Order Dapur
+          </h2>
+          <span
+            class="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest"
+            >Live Update</span
+          >
+        </div>
+
+        <div
+          id="tableLoader"
+          class="flex-1 flex flex-col items-center justify-center p-10"
+        >
+          <div class="loader-big"></div>
+          <p
+            class="mt-4 text-xs font-bold text-emerald-600 uppercase tracking-widest animate-pulse"
+          >
+            Sinkronisasi Data...
+          </p>
+        </div>
+
+        <div id="tableContent" class="hidden">
+          <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left">
+              <thead
+                class="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest"
+              >
+                <tr>
+                  <th class="px-8 py-5">Item & UID Inputter</th>
+                  <th class="px-8 py-5">Jumlah</th>
+                  <th class="px-8 py-5">Harga Jual</th>
+                  <th class="px-8 py-5">Status</th>
+                  <th class="px-8 py-5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody
+                id="orderTable"
+                class="divide-y divide-slate-50 text-sm"
+              ></tbody>
+            </table>
+          </div>
+
+          <div class="md:hidden p-4 space-y-4" id="orderCards"></div>
+
+          <div
+            class="p-8 flex justify-center border-t border-slate-50 bg-white/50"
+            id="paginationWrapper"
+          >
+            <div class="hidden md:flex items-center gap-2" id="desktopNav">
+              <button
+                onclick="changePage('prev')"
+                id="btnPrev"
+                class="px-3 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs uppercase hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30"
+              >
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <div id="pageNumbers" class="flex gap-2"></div>
+              <button
+                onclick="changePage('next')"
+                id="btnNext"
+                class="px-3 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs uppercase hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-30"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <button
+              onclick="loadMoreMobile()"
+              id="btnLoadMore"
+              class="md:hidden w-full py-4 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all"
+            >
+              Muat Lebih Banyak
+            </button>
+          </div>
+
+          <div
+            id="emptyState"
+            class="hidden py-20 flex flex-col items-center justify-center text-center"
+          >
+            <div
+              class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 text-3xl mb-4"
+            >
+              <i class="fas fa-box-open"></i>
+            </div>
+            <h4
+              class="font-bold text-slate-400 uppercase text-xs tracking-widest"
+            >
+              Belum ada data pesanan
+            </h4>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="modalOrder"
+      class="hidden fixed inset-0 bg-emerald-950/60 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden"
+      >
+        <div
+          class="p-8 border-b bg-emerald-50/50 flex justify-between items-center"
+        >
+          <h3 class="font-black text-xl text-emerald-900 uppercase">
+            Input Pre-Order
+          </h3>
+          <button
+            onclick="closeModal()"
+            class="text-slate-400 hover:text-rose-500 text-2xl"
+          >
+            &times;
+          </button>
+        </div>
+        <form id="formPreOrder" class="p-8 space-y-5">
+          <input type="hidden" id="preHargaBeli" value="0" />
+          <div>
+            <label
+              class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-2"
+              >Pilih Barang</label
+            >
+            <select
+              id="selBarang"
+              required
+              class="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+            >
+              <option value="">-- Memuat Barang... --</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label
+                class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-2"
+                >Harga Jual (Manual)</label
+              >
+              <input
+                type="text"
+                id="preHargaJualDisplay"
+                required
+                placeholder="Rp 0"
+                class="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+              <input type="hidden" id="preHargaJual" />
+            </div>
+            <div>
+              <label
+                class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-2"
+                >Jumlah Unit</label
+              >
+              <input
+                type="number"
+                id="preJumlah"
+                required
+                placeholder="0"
+                class="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+            </div>
+          </div>
+          <div>
+            <label
+              class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-2"
+              >Tanggal</label
+            >
+            <input
+              type="date"
+              id="preTanggal"
+              required
+              class="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            id="btnSimpan"
+            class="w-full btn-emerald py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-3"
+          >
+            <span>Simpan Ke Sistem</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="modalConfirmUpdate"
+      class="hidden fixed inset-0 bg-emerald-950/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white rounded-[2rem] max-w-sm w-full p-8 text-center animate-in zoom-in duration-200"
+      >
+        <div
+          class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6"
+        >
+          <i class="fas fa-truck-ramp-box"></i>
+        </div>
+        <h3
+          class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tighter"
+        >
+          Konfirmasi Kedatangan?
+        </h3>
+        <p class="text-slate-500 text-sm mb-8 font-medium">
+          Ubah status pesanan ini menjadi
+          <span class="text-emerald-600 font-bold">Sudah Datang</span>?
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick="closeConfirmUpdate()"
+            class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-slate-200"
+          >
+            Batal
+          </button>
+          <button
+            id="btnConfirmUpdate"
+            class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-200"
+          >
+            Ya, Benar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="modalConfirm"
+      class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white rounded-[2rem] max-w-sm w-full p-8 text-center animate-in zoom-in duration-200"
+      >
+        <div
+          class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6"
+        >
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 class="text-xl font-black text-slate-800 mb-2 uppercase">
+          Hapus Data?
+        </h3>
+        <p class="text-slate-500 text-sm mb-8 font-medium">
+          Tindakan ini tidak dapat dibatalkan.
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick="closeConfirm()"
+            class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-slate-200"
+          >
+            Batal
+          </button>
+          <button
+            id="btnConfirmHapus"
+            class="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-200"
+          >
+            Ya, Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="modalSukses"
+      class="hidden fixed inset-0 bg-emerald-950/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white rounded-[2rem] max-w-sm w-full p-10 text-center animate-in zoom-in duration-300"
+      >
+        <div
+          class="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6"
+        >
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3
+          class="text-2xl font-black text-emerald-900 mb-2 uppercase tracking-tighter"
+        >
+          Berhasil!
+        </h3>
+        <p class="text-slate-500 text-sm mb-8 font-medium">
+          Data pre-order telah berhasil disimpan.
+        </p>
+        <button
+          onclick="closeSukses()"
+          class="w-full py-4 btn-emerald rounded-2xl font-bold uppercase text-xs tracking-widest"
+        >
+          Selesai
+        </button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        onSnapshot,
+        query,
+        orderBy,
+        doc,
+        updateDoc,
+        deleteDoc,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBuIk0yhnqpcrkt4q_ed9ikJYuo6PJ78aQ",
+        authDomain: "koperasi-aguna-3a14a.firebaseapp.com",
+        projectId: "koperasi-aguna-3a14a",
+        storageBucket: "koperasi-aguna-3a14a.firebasestorage.app",
+        messagingSenderId: "668307732730",
+        appId: "1:668307732730:web:c2457d9a690eb303c3f143",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // --- STATE & TITLE DINAMIS ---
+      const userName = localStorage.getItem("dapurUserName") || "Staff";
+      document.getElementById("dynamicTitle").innerText =
+        `Dashboard ${userName} - Kitchen`;
+
+      let allPreorders = [];
+      let currentPage = 1;
+      let mobileLimit = 5;
+      const itemsPerPage = 5;
+      let masterBarangData = [];
+      let currentDeleteId = null;
+      let currentUpdateId = null;
+
+      // Initials & UI
+      const initials = userName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2);
+      document.getElementById("navInitials").innerText = initials;
+      document.getElementById("displayNama").innerText = userName;
+      document.getElementById("displayUID").innerText =
+        localStorage.getItem("dapurUID") || "-";
+      document.getElementById("displayEmail").innerText =
+        localStorage.getItem("dapurUserEmail") || "-";
+
+      // --- RUPIAH FORMATTER LOGIC ---
+      const inputDisplay = document.getElementById("preHargaJualDisplay");
+      const inputHidden = document.getElementById("preHargaJual");
+
+      inputDisplay.addEventListener("input", function (e) {
+        let value = this.value.replace(/[^0-9]/g, "");
+        inputHidden.value = value;
+        if (value) {
+          this.value = "Rp " + parseInt(value).toLocaleString("id-ID");
+        } else {
+          this.value = "";
+        }
+      });
+
+      // --- LOAD MASTER_BARANG ---
+      onSnapshot(collection(db, "master_barang"), (snap) => {
+        const selectEl = document.getElementById("selBarang");
+        selectEl.innerHTML = '<option value="">-- Pilih Barang --</option>';
+        masterBarangData = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          masterBarangData.push(data);
+          selectEl.innerHTML += `<option value="${data.nama}">${data.nama}</option>`;
+        });
+      });
+
+      document.getElementById("selBarang").addEventListener("change", (e) => {
+        const item = masterBarangData.find((i) => i.nama === e.target.value);
+        document.getElementById("preHargaBeli").value = item
+          ? item.hargaBeli || 0
+          : 0;
+      });
+
+      // --- SIMPAN ORDER ---
+      document.getElementById("formPreOrder").onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSimpan");
+        btn.disabled = true;
+        btn.innerHTML = `<div class="loader-circle"></div> <span>MENYIMPAN...</span>`;
+
+        try {
+          await addDoc(collection(db, "preorders"), {
+            uid_dapur: localStorage.getItem("dapurUID"),
+            namaBarang: document.getElementById("selBarang").value,
+            harga_jual: parseInt(inputHidden.value) || 0,
+            harga_beli:
+              parseInt(document.getElementById("preHargaBeli").value) || 0,
+            jumlah: parseInt(document.getElementById("preJumlah").value) || 0,
+            tanggal: document.getElementById("preTanggal").value,
+            status: "Belum Datang",
+            createdAt: new Date().getTime(),
+          });
+          closeModal();
+          e.target.reset();
+          inputDisplay.value = "";
+          showSukses();
+        } catch (err) {
+          alert("Error: " + err.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = `<span>Simpan Ke Sistem</span>`;
+      };
+
+      // --- RENDER & PAGINATION logic ---
+      onSnapshot(
+        query(collection(db, "preorders"), orderBy("createdAt", "desc")),
+        (snap) => {
+          document.getElementById("tableLoader").classList.add("hidden");
+          document.getElementById("tableContent").classList.remove("hidden");
+          allPreorders = [];
+          let pending = 0;
+          snap.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.status === "Belum Datang") pending++;
+            allPreorders.push({ id: docSnap.id, ...data });
+          });
+          document.getElementById("countPending").innerText = pending;
+          document.getElementById("countTotal").innerText = allPreorders.length;
+          renderView();
+        },
+      );
+
+      window.renderView = () => {
+        const emptyState = document.getElementById("emptyState");
+        const orderTable = document.getElementById("orderTable");
+        const orderCards = document.getElementById("orderCards");
+        const paginationWrapper = document.getElementById("paginationWrapper");
+        const tableCard = document.getElementById("mainTableCard");
+
+        if (allPreorders.length === 0) {
+          emptyState.classList.remove("hidden");
+          orderTable.innerHTML = "";
+          orderCards.innerHTML = "";
+          paginationWrapper.classList.add("hidden");
+          tableCard.style.backgroundColor = "white"; // Default
+          return;
+        }
+
+        emptyState.classList.add("hidden");
+        paginationWrapper.classList.remove("hidden");
+
+        // BACKGROUND DINAMIS BERDASARKAN JUMLAH
+        if (allPreorders.length > 10) {
+          tableCard.style.backgroundColor = "#f8fafc"; // Slate tipis jika banyak
+        } else {
+          tableCard.style.backgroundColor = "white";
+        }
+
+        const totalPages = Math.ceil(allPreorders.length / itemsPerPage);
+        if (currentPage > totalPages) currentPage = totalPages || 1;
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedItems = allPreorders.slice(start, end);
+        const mobileItems = allPreorders.slice(0, mobileLimit);
+
+        // Table & Cards
+        orderTable.innerHTML = paginatedItems
+          .map((item) => generateRowHtml(item))
+          .join("");
+        orderCards.innerHTML = mobileItems
+          .map((item) => generateCardHtml(item))
+          .join("");
+
+        // PAGINATION ANGKA
+        renderPaginationNumbers(totalPages);
+
+        document.getElementById("btnPrev").disabled = currentPage === 1;
+        document.getElementById("btnNext").disabled =
+          currentPage === totalPages;
+        document
+          .getElementById("btnLoadMore")
+          .classList.toggle("hidden", mobileLimit >= allPreorders.length);
+      };
+
+      function renderPaginationNumbers(total) {
+        const container = document.getElementById("pageNumbers");
+        container.innerHTML = "";
+        for (let i = 1; i <= total; i++) {
+          const btn = document.createElement("button");
+          btn.innerText = i;
+          btn.className = `w-8 h-8 rounded-lg font-bold text-xs transition-all ${i === currentPage ? "bg-emerald-600 text-white shadow-md" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`;
+          btn.onclick = () => {
+            currentPage = i;
+            renderView();
+          };
+          container.appendChild(btn);
+        }
+      }
+
+      window.changePage = (dir) => {
+        const totalPages = Math.ceil(allPreorders.length / itemsPerPage);
+        if (dir === "next" && currentPage < totalPages) currentPage++;
+        if (dir === "prev" && currentPage > 1) currentPage--;
+        renderView();
+      };
+
+      // --- SISANYA FUNGSI STANDAR ---
+      function generateRowHtml(d) {
+        const jual = d.harga_jual || 0;
+        return `
+          <tr class="hover:bg-emerald-50/30 transition-all">
+            <td class="px-8 py-5">
+              <p class="font-bold text-slate-800">${d.namaBarang || "Tanpa Nama"}</p>
+              <p class="text-[9px] text-emerald-500 font-bold tracking-tighter uppercase">UID: ${d.uid_dapur || "N/A"}</p>
+            </td>
+            <td class="px-8 py-5 font-black text-slate-700">${d.jumlah || 0} UNIT</td>
+            <td class="px-8 py-5 font-bold text-slate-800">Rp ${jual.toLocaleString("id-ID")}</td>
+            <td class="px-8 py-5">
+              <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border ${d.status === "Belum Datang" ? "bg-amber-50 text-amber-500 border-amber-100" : "bg-emerald-50 text-emerald-500 border-emerald-100"}">
+                ${d.status || "N/A"}
+              </span>
+            </td>
+            <td class="px-8 py-5 text-right flex gap-2 justify-end">
+              ${d.status === "Belum Datang" ? `<button onclick="confirmUpdateStatus('${d.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><i class="fas fa-check"></i></button>` : `<div class="w-8 h-8 flex items-center justify-center text-emerald-300"><i class="fas fa-circle-check"></i></div>`}
+              <button onclick="confirmHapusOrder('${d.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+      }
+
+      function generateCardHtml(d) {
+        const jual = d.harga_jual || 0;
+        return `
+          <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-black text-slate-800 leading-tight">${d.namaBarang}</h4>
+                <p class="text-[9px] text-emerald-500 font-bold uppercase mt-1">UID: ${d.uid_dapur}</p>
+              </div>
+              <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase border ${d.status === "Belum Datang" ? "bg-amber-50 text-amber-500 border-amber-100" : "bg-emerald-50 text-emerald-500 border-emerald-100"}">
+                ${d.status}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 py-3 border-y border-dashed border-slate-100 text-xs">
+              <div>
+                <p class="text-slate-400 font-bold uppercase text-[8px] tracking-widest">Jumlah</p>
+                <p class="font-black text-slate-700">${d.jumlah} UNIT</p>
+              </div>
+              <div>
+                <p class="text-slate-400 font-bold uppercase text-[8px] tracking-widest">Harga Jual</p>
+                <p class="font-black text-emerald-700">Rp ${jual.toLocaleString("id-ID")}</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              ${d.status === "Belum Datang" ? `<button onclick="confirmUpdateStatus('${d.id}')" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100"><i class="fas fa-check mr-2"></i>Tandai Datang</button>` : `<button disabled class="flex-1 bg-slate-50 text-emerald-400 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest"><i class="fas fa-circle-check mr-2"></i>Selesai</button>`}
+              <button onclick="confirmHapusOrder('${d.id}')" class="w-12 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>`;
+      }
+
+      window.loadMoreMobile = () => {
+        mobileLimit += itemsPerPage;
+        renderView();
+      };
+      window.confirmUpdateStatus = (id) => {
+        currentUpdateId = id;
+        document
+          .getElementById("modalConfirmUpdate")
+          .classList.remove("hidden");
+      };
+      document.getElementById("btnConfirmUpdate").onclick = async () => {
+        if (currentUpdateId) {
+          await updateDoc(doc(db, "preorders", currentUpdateId), {
+            status: "Sudah Datang",
+          });
+          closeConfirmUpdate();
+        }
+      };
+      window.confirmHapusOrder = (id) => {
+        currentDeleteId = id;
+        document.getElementById("modalConfirm").classList.remove("hidden");
+      };
+      document.getElementById("btnConfirmHapus").onclick = async () => {
+        if (currentDeleteId) {
+          await deleteDoc(doc(db, "preorders", currentDeleteId));
+          closeConfirm();
+        }
+      };
+      window.logout = () => {
+        localStorage.clear();
+        window.location.href = "dapur-login.html";
+      };
+      window.showSukses = () =>
+        document.getElementById("modalSukses").classList.remove("hidden");
+      window.closeSukses = () =>
+        document.getElementById("modalSukses").classList.add("hidden");
+      window.closeConfirm = () => {
+        document.getElementById("modalConfirm").classList.add("hidden");
+        currentDeleteId = null;
+      };
+      window.closeConfirmUpdate = () => {
+        document.getElementById("modalConfirmUpdate").classList.add("hidden");
+        currentUpdateId = null;
+      };
+      window.openModal = () =>
+        document.getElementById("modalOrder").classList.remove("hidden");
+      window.closeModal = () =>
+        document.getElementById("modalOrder").classList.add("hidden");
+    </script>
+  </body>
+</html>
